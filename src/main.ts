@@ -43,11 +43,17 @@ export async function run(): Promise<void> {
     if (!baseTree || !baseTree.data || !baseTree.data.tree) {
       throw new Error('💥 Cannot fetch repository base branch tree, aborting!')
     }
-    core.debug(JSON.stringify(baseTree.data.tree, null, 2))
-    const baseLockSHA = baseTree.data.tree.find((file: { path: string }) => {
+    const tree = baseTree.data.tree as Array<{ path: string; sha: string }>
+    const baseLockSHA = tree.find(file => {
       core.debug(`file.path: ${file.path}`)
       return file.path === 'pubspec.lock'
-    }).sha
+    })?.sha
+    if (!baseLockSHA) {
+      throw new Error(
+        `💥 Cannot find the base lock file, aborting! Found files are ${tree.map(t => t.path).join(',')}`
+      )
+    }
+
     const baseLockData = await octokit.request(
       'GET /repos/{owner}/{repo}/git/blobs/{file_sha}',
       { ...octokitParams, file_sha: baseLockSHA }
