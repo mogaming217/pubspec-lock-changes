@@ -74,6 +74,7 @@ export async function run(): Promise<void> {
       Buffer.from(baseLockData.data.content, 'base64').toString('utf-8'),
       targetLibraries
     )
+    core.debug(`baseLockSHA: ${baseLockSHA}`)
     core.debug(`baseLock: ${JSON.stringify(baseLock)}`)
 
     // Compare the lock files

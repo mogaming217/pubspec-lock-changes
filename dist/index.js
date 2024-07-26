@@ -29309,6 +29309,7 @@ async function run() {
             throw new Error('💥 Cannot fetch repository base lock file, aborting!');
         }
         const baseLock = (0, parser_1.parseLockFile)(Buffer.from(baseLockData.data.content, 'base64').toString('utf-8'), targetLibraries);
+        core.debug(`baseLockSHA: ${baseLockSHA}`);
         core.debug(`baseLock: ${JSON.stringify(baseLock)}`);
         // Compare the lock files
         const diff = (0, parser_1.getDiffBetweenLockFiles)(targetLibraries, baseLock, updatedLock);
