@@ -31,6 +31,18 @@ export async function run(): Promise<void> {
 
     const octokitParams = { owner, repo }
 
+    // Fetch the PR lock file
+
+    const lockPath = resolve(process.cwd(), inputPath)
+    if (!existsSync(lockPath)) {
+      throw new Error(
+        '💥 The code has not been checkout or the lock file does not exist in this PR, aborting!'
+      )
+    }
+    const content = readFileSync(lockPath, { encoding: 'utf8' })
+    const updatedLock = parseLockFile(content, targetLibraries)
+    core.debug(`updatedLock: ${JSON.stringify(updatedLock)}`)
+
     // Fetch the base lock file
 
     const basePath = getBasePathFromInput(inputPath)
@@ -63,18 +75,6 @@ export async function run(): Promise<void> {
       targetLibraries
     )
     core.debug(`baseLock: ${JSON.stringify(baseLock)}`)
-
-    // Fetch the PR lock file
-
-    const lockPath = resolve(process.cwd(), inputPath)
-    if (!existsSync(lockPath)) {
-      throw new Error(
-        '💥 The code has not been checkout or the lock file does not exist in this PR, aborting!'
-      )
-    }
-    const content = readFileSync(lockPath, { encoding: 'utf8' })
-    const updatedLock = parseLockFile(content, targetLibraries)
-    core.debug(`updatedLock: ${JSON.stringify(updatedLock)}`)
 
     // Compare the lock files
 

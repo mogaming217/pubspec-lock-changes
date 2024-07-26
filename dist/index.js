@@ -29283,6 +29283,14 @@ async function run() {
             throw new Error('💥 Cannot find the PR data in the workflow context, aborting!');
         }
         const octokitParams = { owner, repo };
+        // Fetch the PR lock file
+        const lockPath = (0, path_1.resolve)(process.cwd(), inputPath);
+        if (!(0, fs_1.existsSync)(lockPath)) {
+            throw new Error('💥 The code has not been checkout or the lock file does not exist in this PR, aborting!');
+        }
+        const content = (0, fs_1.readFileSync)(lockPath, { encoding: 'utf8' });
+        const updatedLock = (0, parser_1.parseLockFile)(content, targetLibraries);
+        core.debug(`updatedLock: ${JSON.stringify(updatedLock)}`);
         // Fetch the base lock file
         const basePath = getBasePathFromInput(inputPath);
         core.debug(`basePath: ${basePath}`);
@@ -29302,14 +29310,6 @@ async function run() {
         }
         const baseLock = (0, parser_1.parseLockFile)(Buffer.from(baseLockData.data.content, 'base64').toString('utf-8'), targetLibraries);
         core.debug(`baseLock: ${JSON.stringify(baseLock)}`);
-        // Fetch the PR lock file
-        const lockPath = (0, path_1.resolve)(process.cwd(), inputPath);
-        if (!(0, fs_1.existsSync)(lockPath)) {
-            throw new Error('💥 The code has not been checkout or the lock file does not exist in this PR, aborting!');
-        }
-        const content = (0, fs_1.readFileSync)(lockPath, { encoding: 'utf8' });
-        const updatedLock = (0, parser_1.parseLockFile)(content, targetLibraries);
-        core.debug(`updatedLock: ${JSON.stringify(updatedLock)}`);
         // Compare the lock files
         const diff = (0, parser_1.getDiffBetweenLockFiles)(targetLibraries, baseLock, updatedLock);
         core.debug(`diff: ${JSON.stringify(diff)}`);
