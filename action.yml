@@ -1,23 +1,46 @@
-name: 'The name of your action here'
-description: 'Provide a description here'
-author: 'Your name or organization here'
+name: 'Pubspec Lock Changes'
+description:
+  'Create a comment inside Pull Request with the human-readable summary of the
+  changes to the "pubspec.lock" file.'
+author: '@mogaming217'
 
 # Add your action's branding here. This will appear on the GitHub Marketplace.
 branding:
   icon: 'heart'
-  color: 'red'
+  color: 'blue'
 
 # Define your inputs here.
 inputs:
-  milliseconds:
-    description: 'Your input description here'
+  token:
+    description:
+      'GitHub token for the bot, so it can publish a comment in the pull
+      request.'
     required: true
-    default: '1000'
+  target-libraries:
+    description:
+      'Comma separated libraries to track changes. ex: "flutter,flutter_test"'
+    required: true
+  path:
+    description:
+      'Path to the "yarn.lock" file in the repository. Default value points to
+      the file at project root.'
+    required: false
+    default: 'pubspec.lock'
+  base-branch:
+    description:
+      'Base branch to compare the changes with. Default value is "main".'
+    required: false
+    default: 'main'
+  comment-if-no-changes:
+    description:
+      'Whether to comment if there are no changes. Default value is "true".'
+    required: false
+    default: 'true'
 
 # Define your outputs here.
-outputs:
-  time:
-    description: 'Your output description here'
+# outputs:
+#   time:
+#     description: 'Your output description here'
 
 runs:
   using: node20
