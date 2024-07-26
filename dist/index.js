@@ -29346,7 +29346,9 @@ async function run() {
         core.debug(`targetLibraries: ${targetLibraries}`);
         core.debug(`inputPath: ${inputPath}`);
         core.debug(`baseBranch: ${baseBranch}`);
+        core.debug(`warningText: ${warningText}`);
         core.debug(`commentIfNoChanges: ${commentIfNoChanges}`);
+        core.debug(`context.sha: ${github_1.context.sha}`);
         const { owner, repo, number } = github_1.context.issue;
         if (!number) {
             throw new Error('💥 Cannot find the PR data in the workflow context, aborting!');

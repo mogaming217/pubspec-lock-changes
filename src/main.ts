@@ -21,7 +21,9 @@ export async function run(): Promise<void> {
     core.debug(`targetLibraries: ${targetLibraries}`)
     core.debug(`inputPath: ${inputPath}`)
     core.debug(`baseBranch: ${baseBranch}`)
+    core.debug(`warningText: ${warningText}`)
     core.debug(`commentIfNoChanges: ${commentIfNoChanges}`)
+    core.debug(`context.sha: ${context.sha}`)
 
     const { owner, repo, number } = context.issue
     if (!number) {
