@@ -29370,13 +29370,13 @@ async function run() {
             return;
         let body = `## Lock file changes\n\n`;
         body += `Target libraries: ${targetLibraries.join(', ')}\n\n`;
-        if (warningText) {
-            body += `:warning: ${warningText}\n\n`;
-        }
         if (diff.length === 0) {
             body += 'No changes detected.';
         }
         else {
+            if (warningText) {
+                body += `:warning: ${warningText}\n\n`;
+            }
             body += (0, comment_1.createCommentBody)(diff);
         }
         await octokit.rest.issues.createComment({
