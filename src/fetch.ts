@@ -25,7 +25,7 @@ export const fetchLockFileText = async ({
     'GET /repos/{owner}/{repo}/git/trees/{branchOrSha}:{path}',
     {
       ...octokitParams,
-      branch: branchOrSha,
+      branchOrSha: branchOrSha,
       path: getBasePathFromInput(inputPath)
     }
   )

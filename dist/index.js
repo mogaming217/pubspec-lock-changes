@@ -29272,7 +29272,7 @@ const fetchLockFileText = async ({ branchOrSha }) => {
     // https://docs.github.com/ja/rest/git/trees?apiVersion=2022-11-28#get-a-tree
     const baseTree = await octokit.request('GET /repos/{owner}/{repo}/git/trees/{branchOrSha}:{path}', {
         ...octokitParams,
-        branch: branchOrSha,
+        branchOrSha: branchOrSha,
         path: getBasePathFromInput(inputPath)
     });
     if (!baseTree || !baseTree.data || !baseTree.data.tree) {
