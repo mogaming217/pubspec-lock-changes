@@ -21,6 +21,10 @@ export async function run(): Promise<void> {
     const inputPath = core.getInput('path')
     const baseBranch = core.getInput('base-branch')
     const commentIfNoChanges = core.getInput('comment-if-no-changes') === 'true'
+    core.debug(`targetLibraries: ${targetLibraries}`)
+    core.debug(`inputPath: ${inputPath}`)
+    core.debug(`baseBranch: ${baseBranch}`)
+    core.debug(`commentIfNoChanges: ${commentIfNoChanges}`)
 
     const { owner, repo, number } = context.issue
     if (!number) {
@@ -84,7 +88,9 @@ export async function run(): Promise<void> {
 
     if (!commentIfNoChanges) return
 
-    let body = '## Lock file changes\n\n'
+    let body = `## Lock file changes\n\nTarget libraries: ${targetLibraries.join(
+      ', '
+    )}\n\n`
     if (diff.length === 0) {
       body += 'No changes detected.'
     } else {
