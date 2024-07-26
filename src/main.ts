@@ -43,7 +43,7 @@ export async function run(): Promise<void> {
     if (!baseTree || !baseTree.data || !baseTree.data.tree) {
       throw new Error('💥 Cannot fetch repository base branch tree, aborting!')
     }
-    const tree = baseTree.data.tree as Array<{ path: string; sha: string }>
+    const tree = baseTree.data.tree as { path: string; sha: string }[]
     const baseLockSHA = tree.find(file => {
       core.debug(`file.path: ${file.path}`)
       return file.path === 'pubspec.lock'
