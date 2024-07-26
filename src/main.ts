@@ -34,6 +34,8 @@ export async function run(): Promise<void> {
     // Fetch the base lock file
 
     const basePath = getBasePathFromInput(inputPath)
+    core.debug(`basePath: ${basePath}`)
+    // https://docs.github.com/ja/rest/git/trees?apiVersion=2022-11-28#get-a-tree
     const baseTree = await octokit.request(
       'GET /repos/{owner}/{repo}/git/trees/{branch}:{path}',
       { ...octokitParams, branch: baseBranch, path: basePath }
@@ -41,9 +43,10 @@ export async function run(): Promise<void> {
     if (!baseTree || !baseTree.data || !baseTree.data.tree) {
       throw new Error('💥 Cannot fetch repository base branch tree, aborting!')
     }
-    const baseLockSHA = baseTree.data.tree.find(
-      (file: { path: string }) => file.path === 'yarn.lock'
-    ).sha
+    const baseLockSHA = baseTree.data.tree.find((file: { path: string }) => {
+      core.debug(`file.path: ${file.path}`)
+      return file.path === 'pubspec.lock'
+    }).sha
     const baseLockData = await octokit.request(
       'GET /repos/{owner}/{repo}/git/blobs/{file_sha}',
       { ...octokitParams, file_sha: baseLockSHA }

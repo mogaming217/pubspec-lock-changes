@@ -17,8 +17,8 @@ on: [pull_request]
 jobs:
   yarn_lock_changes:
     runs-on: ubuntu-latest
-    # Permission overwrite is required for Dependabot PRs, see "Common issues" section below.
     permissions:
+      contents: read
       pull-requests: write
     steps:
       - name: Checkout
