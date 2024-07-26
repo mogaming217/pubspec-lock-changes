@@ -31,6 +31,12 @@ inputs:
       'Base branch to compare the changes with. Default value is "main".'
     required: false
     default: 'main'
+  warning-text-if-changes:
+    description:
+      'Text to display if there are changes. Default value is "Changes detected
+      in the pubspec.lock file."'
+    required: false
+    default: ''
   comment-if-no-changes:
     description:
       'Whether to comment if there are no changes. Default value is "true".'

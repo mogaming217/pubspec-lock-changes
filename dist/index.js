@@ -29228,6 +29228,72 @@ const toMarkdownTableRow = (row) => {
 
 /***/ }),
 
+/***/ 7560:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.fetchLockFileText = void 0;
+const core = __importStar(__nccwpck_require__(2186));
+const github_1 = __nccwpck_require__(5438);
+const getBasePathFromInput = (input) => input.lastIndexOf('/') ? input.substring(0, input.lastIndexOf('/')) : '';
+const fetchLockFileText = async ({ branchOrSha }) => {
+    const octokit = (0, github_1.getOctokit)(core.getInput('token', { required: true }));
+    const inputPath = core.getInput('path');
+    const { owner, repo, number } = github_1.context.issue;
+    if (!number) {
+        throw new Error('💥 Cannot find the PR data in the workflow context, aborting!');
+    }
+    const octokitParams = { owner, repo };
+    // https://docs.github.com/ja/rest/git/trees?apiVersion=2022-11-28#get-a-tree
+    const baseTree = await octokit.request('GET /repos/{owner}/{repo}/git/trees/{branchOrSha}:{path}', {
+        ...octokitParams,
+        branch: branchOrSha,
+        path: getBasePathFromInput(inputPath)
+    });
+    if (!baseTree || !baseTree.data || !baseTree.data.tree) {
+        throw new Error('💥 Cannot fetch repository base branch tree, aborting!');
+    }
+    const tree = baseTree.data.tree;
+    const lockSha = tree.find(file => file.path === 'pubspec.lock')?.sha;
+    if (!lockSha) {
+        throw new Error(`💥 Cannot find the pubspec.lock file, aborting!`);
+    }
+    const baseLockData = await octokit.request('GET /repos/{owner}/{repo}/git/blobs/{file_sha}', { ...octokitParams, file_sha: lockSha });
+    if (!baseLockData || !baseLockData.data || !baseLockData.data.content) {
+        throw new Error('💥 Cannot fetch repository lock file, aborting!');
+    }
+    return Buffer.from(baseLockData.data.content, 'base64').toString('utf-8');
+};
+exports.fetchLockFileText = fetchLockFileText;
+
+
+/***/ }),
+
 /***/ 399:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
@@ -29260,11 +29326,9 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.run = run;
 const core = __importStar(__nccwpck_require__(2186));
 const github_1 = __nccwpck_require__(5438);
-const path_1 = __nccwpck_require__(1017);
-const fs_1 = __nccwpck_require__(7147);
 const parser_1 = __nccwpck_require__(8412);
 const comment_1 = __nccwpck_require__(7810);
-const getBasePathFromInput = (input) => input.lastIndexOf('/') ? input.substring(0, input.lastIndexOf('/')) : '';
+const fetch_1 = __nccwpck_require__(7560);
 /**
  * The main function for the action.
  * @returns {Promise<void>} Resolves when the action is complete.
@@ -29277,6 +29341,7 @@ async function run() {
             .split(',');
         const inputPath = core.getInput('path');
         const baseBranch = core.getInput('base-branch');
+        const warningText = core.getInput('warning-text-if-changes');
         const commentIfNoChanges = core.getInput('comment-if-no-changes') === 'true';
         core.debug(`targetLibraries: ${targetLibraries}`);
         core.debug(`inputPath: ${inputPath}`);
@@ -29286,41 +29351,28 @@ async function run() {
         if (!number) {
             throw new Error('💥 Cannot find the PR data in the workflow context, aborting!');
         }
-        const octokitParams = { owner, repo };
         // Fetch the PR lock file
-        const lockPath = (0, path_1.resolve)(process.cwd(), inputPath);
-        if (!(0, fs_1.existsSync)(lockPath)) {
-            throw new Error('💥 The code has not been checkout or the lock file does not exist in this PR, aborting!');
-        }
-        const content = (0, fs_1.readFileSync)(lockPath, { encoding: 'utf8' });
-        const updatedLock = (0, parser_1.parseLockFile)(content, targetLibraries);
+        const updatedLockFileText = await (0, fetch_1.fetchLockFileText)({
+            branchOrSha: github_1.context.sha
+        });
+        const updatedLock = (0, parser_1.parseLockFile)(updatedLockFileText, targetLibraries);
         core.debug(`updatedLock: ${JSON.stringify(updatedLock)}`);
         // Fetch the base lock file
-        const basePath = getBasePathFromInput(inputPath);
-        core.debug(`basePath: ${basePath}`);
-        // https://docs.github.com/ja/rest/git/trees?apiVersion=2022-11-28#get-a-tree
-        const baseTree = await octokit.request('GET /repos/{owner}/{repo}/git/trees/{branch}:{path}', { ...octokitParams, branch: baseBranch, path: basePath });
-        if (!baseTree || !baseTree.data || !baseTree.data.tree) {
-            throw new Error('💥 Cannot fetch repository base branch tree, aborting!');
-        }
-        const tree = baseTree.data.tree;
-        const baseLockSHA = tree.find(file => file.path === 'pubspec.lock')?.sha;
-        if (!baseLockSHA) {
-            throw new Error(`💥 Cannot find the base lock file, aborting! Found files are ${tree.map(t => t.path).join(',')}`);
-        }
-        const baseLockData = await octokit.request('GET /repos/{owner}/{repo}/git/blobs/{file_sha}', { ...octokitParams, file_sha: baseLockSHA });
-        if (!baseLockData || !baseLockData.data || !baseLockData.data.content) {
-            throw new Error('💥 Cannot fetch repository base lock file, aborting!');
-        }
-        const baseLock = (0, parser_1.parseLockFile)(Buffer.from(baseLockData.data.content, 'base64').toString('utf-8'), targetLibraries);
-        core.debug(`baseLockSHA: ${baseLockSHA}`);
+        const baseLockFileText = await (0, fetch_1.fetchLockFileText)({
+            branchOrSha: baseBranch
+        });
+        const baseLock = (0, parser_1.parseLockFile)(baseLockFileText, targetLibraries);
         core.debug(`baseLock: ${JSON.stringify(baseLock)}`);
         // Compare the lock files
         const diff = (0, parser_1.getDiffBetweenLockFiles)(targetLibraries, baseLock, updatedLock);
         core.debug(`diff: ${JSON.stringify(diff)}`);
         if (!commentIfNoChanges)
             return;
-        let body = `## Lock file changes\n\nTarget libraries: ${targetLibraries.join(', ')}\n\n`;
+        let body = `## Lock file changes\n\n`;
+        body += `Target libraries: ${targetLibraries.join(', ')}\n\n`;
+        if (warningText) {
+            body += `:warning: ${warningText}\n\n`;
+        }
         if (diff.length === 0) {
             body += 'No changes detected.';
         }
@@ -29328,7 +29380,8 @@ async function run() {
             body += (0, comment_1.createCommentBody)(diff);
         }
         await octokit.rest.issues.createComment({
-            ...octokitParams,
+            owner,
+            repo,
             issue_number: number,
             body
         });

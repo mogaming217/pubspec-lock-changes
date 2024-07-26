@@ -1,12 +1,8 @@
 import * as core from '@actions/core'
 import { context, getOctokit } from '@actions/github'
-import { resolve } from 'path'
-import { existsSync, readFileSync } from 'fs'
 import { getDiffBetweenLockFiles, parseLockFile } from './parser'
 import { createCommentBody } from './comment'
-
-const getBasePathFromInput = (input: string): string =>
-  input.lastIndexOf('/') ? input.substring(0, input.lastIndexOf('/')) : ''
+import { fetchLockFileText } from './fetch'
 
 /**
  * The main function for the action.
@@ -20,6 +16,7 @@ export async function run(): Promise<void> {
       .split(',')
     const inputPath = core.getInput('path')
     const baseBranch = core.getInput('base-branch')
+    const warningText = core.getInput('warning-text-if-changes')
     const commentIfNoChanges = core.getInput('comment-if-no-changes') === 'true'
     core.debug(`targetLibraries: ${targetLibraries}`)
     core.debug(`inputPath: ${inputPath}`)
@@ -33,52 +30,20 @@ export async function run(): Promise<void> {
       )
     }
 
-    const octokitParams = { owner, repo }
-
     // Fetch the PR lock file
 
-    const lockPath = resolve(process.cwd(), inputPath)
-    if (!existsSync(lockPath)) {
-      throw new Error(
-        '💥 The code has not been checkout or the lock file does not exist in this PR, aborting!'
-      )
-    }
-    const content = readFileSync(lockPath, { encoding: 'utf8' })
-    const updatedLock = parseLockFile(content, targetLibraries)
+    const updatedLockFileText = await fetchLockFileText({
+      branchOrSha: context.sha
+    })
+    const updatedLock = parseLockFile(updatedLockFileText, targetLibraries)
     core.debug(`updatedLock: ${JSON.stringify(updatedLock)}`)
 
     // Fetch the base lock file
 
-    const basePath = getBasePathFromInput(inputPath)
-    core.debug(`basePath: ${basePath}`)
-    // https://docs.github.com/ja/rest/git/trees?apiVersion=2022-11-28#get-a-tree
-    const baseTree = await octokit.request(
-      'GET /repos/{owner}/{repo}/git/trees/{branch}:{path}',
-      { ...octokitParams, branch: baseBranch, path: basePath }
-    )
-    if (!baseTree || !baseTree.data || !baseTree.data.tree) {
-      throw new Error('💥 Cannot fetch repository base branch tree, aborting!')
-    }
-    const tree = baseTree.data.tree as { path: string; sha: string }[]
-    const baseLockSHA = tree.find(file => file.path === 'pubspec.lock')?.sha
-    if (!baseLockSHA) {
-      throw new Error(
-        `💥 Cannot find the base lock file, aborting! Found files are ${tree.map(t => t.path).join(',')}`
-      )
-    }
-
-    const baseLockData = await octokit.request(
-      'GET /repos/{owner}/{repo}/git/blobs/{file_sha}',
-      { ...octokitParams, file_sha: baseLockSHA }
-    )
-    if (!baseLockData || !baseLockData.data || !baseLockData.data.content) {
-      throw new Error('💥 Cannot fetch repository base lock file, aborting!')
-    }
-    const baseLock = parseLockFile(
-      Buffer.from(baseLockData.data.content, 'base64').toString('utf-8'),
-      targetLibraries
-    )
-    core.debug(`baseLockSHA: ${baseLockSHA}`)
+    const baseLockFileText = await fetchLockFileText({
+      branchOrSha: baseBranch
+    })
+    const baseLock = parseLockFile(baseLockFileText, targetLibraries)
     core.debug(`baseLock: ${JSON.stringify(baseLock)}`)
 
     // Compare the lock files
@@ -88,9 +53,11 @@ export async function run(): Promise<void> {
 
     if (!commentIfNoChanges) return
 
-    let body = `## Lock file changes\n\nTarget libraries: ${targetLibraries.join(
-      ', '
-    )}\n\n`
+    let body = `## Lock file changes\n\n`
+    body += `Target libraries: ${targetLibraries.join(', ')}\n\n`
+    if (warningText) {
+      body += `:warning: ${warningText}\n\n`
+    }
     if (diff.length === 0) {
       body += 'No changes detected.'
     } else {
@@ -98,7 +65,8 @@ export async function run(): Promise<void> {
     }
 
     await octokit.rest.issues.createComment({
-      ...octokitParams,
+      owner,
+      repo,
       issue_number: number,
       body
     })

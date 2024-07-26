@@ -21,8 +21,9 @@ jobs:
       contents: read
       pull-requests: write
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      # No need to checkout
+      # - name: Checkout
+      #   uses: actions/checkout@v4
 
       - name: Pubspec Lock Changes
         # Please use `main` as version before the stable release will be published as `v1`.
@@ -34,5 +35,6 @@ jobs:
           # Optional inputs, can be deleted safely if you are happy with default values.
           path: pubspec.lock
           base-branch: main
+          warn-text-if-changes: 'Warning!'
           comment-if-no-changes: true
 ```
