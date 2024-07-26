@@ -16,8 +16,6 @@ export const parseLockFile = (
   const lockFile = YAML.parse(content).packages
   const libraries: ParseLockFileResult = {}
 
-  console.log('lockFile', lockFile)
-
   for (const library of targetLibraries) {
     if (lockFile[library]) {
       libraries[library] = {

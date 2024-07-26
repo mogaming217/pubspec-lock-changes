@@ -44,10 +44,7 @@ export async function run(): Promise<void> {
       throw new Error('💥 Cannot fetch repository base branch tree, aborting!')
     }
     const tree = baseTree.data.tree as { path: string; sha: string }[]
-    const baseLockSHA = tree.find(file => {
-      core.debug(`file.path: ${file.path}`)
-      return file.path === 'pubspec.lock'
-    })?.sha
+    const baseLockSHA = tree.find(file => file.path === 'pubspec.lock')?.sha
     if (!baseLockSHA) {
       throw new Error(
         `💥 Cannot find the base lock file, aborting! Found files are ${tree.map(t => t.path).join(',')}`
@@ -65,6 +62,7 @@ export async function run(): Promise<void> {
       Buffer.from(baseLockData.data.content, 'base64').toString('utf-8'),
       targetLibraries
     )
+    core.debug(`baseLock: ${JSON.stringify(baseLock)}`)
 
     // Fetch the PR lock file
 
@@ -76,10 +74,13 @@ export async function run(): Promise<void> {
     }
     const content = readFileSync(lockPath, { encoding: 'utf8' })
     const updatedLock = parseLockFile(content, targetLibraries)
+    core.debug(`updatedLock: ${JSON.stringify(updatedLock)}`)
 
     // Compare the lock files
 
     const diff = getDiffBetweenLockFiles(targetLibraries, baseLock, updatedLock)
+    core.debug(`diff: ${JSON.stringify(diff)}`)
+
     if (!commentIfNoChanges) return
 
     let body = '## Lock file changes\n\n'

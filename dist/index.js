@@ -29292,10 +29292,7 @@ async function run() {
             throw new Error('💥 Cannot fetch repository base branch tree, aborting!');
         }
         const tree = baseTree.data.tree;
-        const baseLockSHA = tree.find(file => {
-            core.debug(`file.path: ${file.path}`);
-            return file.path === 'pubspec.lock';
-        })?.sha;
+        const baseLockSHA = tree.find(file => file.path === 'pubspec.lock')?.sha;
         if (!baseLockSHA) {
             throw new Error(`💥 Cannot find the base lock file, aborting! Found files are ${tree.map(t => t.path).join(',')}`);
         }
@@ -29304,6 +29301,7 @@ async function run() {
             throw new Error('💥 Cannot fetch repository base lock file, aborting!');
         }
         const baseLock = (0, parser_1.parseLockFile)(Buffer.from(baseLockData.data.content, 'base64').toString('utf-8'), targetLibraries);
+        core.debug(`baseLock: ${JSON.stringify(baseLock)}`);
         // Fetch the PR lock file
         const lockPath = (0, path_1.resolve)(process.cwd(), inputPath);
         if (!(0, fs_1.existsSync)(lockPath)) {
@@ -29311,8 +29309,10 @@ async function run() {
         }
         const content = (0, fs_1.readFileSync)(lockPath, { encoding: 'utf8' });
         const updatedLock = (0, parser_1.parseLockFile)(content, targetLibraries);
+        core.debug(`updatedLock: ${JSON.stringify(updatedLock)}`);
         // Compare the lock files
         const diff = (0, parser_1.getDiffBetweenLockFiles)(targetLibraries, baseLock, updatedLock);
+        core.debug(`diff: ${JSON.stringify(diff)}`);
         if (!commentIfNoChanges)
             return;
         let body = '## Lock file changes\n\n';
@@ -29353,7 +29353,6 @@ const yaml_1 = __importDefault(__nccwpck_require__(4083));
 const parseLockFile = (content, targetLibraries) => {
     const lockFile = yaml_1.default.parse(content).packages;
     const libraries = {};
-    console.log('lockFile', lockFile);
     for (const library of targetLibraries) {
         if (lockFile[library]) {
             libraries[library] = {
